@@ -22,5 +22,12 @@
       "end": "2024-08-22T12:30:00Z",
       "status": "Confirmed",
       "notes": ""
-    }
+    }, {
+        "id": "evt-4",
+        "title": "Team Sync: Q4 Planning",
+        "start": "2024-04-25T11:00:00Z",
+        "end": "2024-04-25T12:30:00Z",
+        "status": "Confirmed",
+        "notes": ""
+      }
   ]
