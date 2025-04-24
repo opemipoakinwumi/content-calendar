@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 // Define application metadata
 export const metadata: Metadata = {
   title: "ULE Homes Content Calendar",
-  description: "ULE Homes Content Calendar powered by Next.js and GitHub",
+  description: "ULE Homes Content Calendar",
   // Add icons etc. here if desired
   // icons: { icon: "/favicon.ico" }
 };
