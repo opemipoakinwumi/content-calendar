@@ -1,23 +1,23 @@
 // app/page.tsx
-import { fetchCalendarEvents } from '@/app/actions'; // Import the fetch function
-import CalendarView from '@/components/CalendarView'; // Client Component for the calendar UI
+import { fetchCalendarEvents } from '@/app/actions';
+import CalendarView from '@/components/CalendarView';
 
-// Revalidate this page on-demand or based on time
-// export const revalidate = 60; // Revalidate every 60 seconds (alternative to fetch revalidate)
-// export const dynamic = 'force-dynamic' // Optional: Force dynamic rendering if needed
+// Ensure dynamic fetching for testing
+export const dynamic = 'force-dynamic';
+// Turn off caching for fetch calls made by this page or its children
+// export const fetchCache = 'force-no-store'; // Alternative to dynamic = 'force-dynamic'
+
 
 export default async function HomePage() {
-  // Fetch data on the server during rendering
-  const initialEvents = await fetchCalendarEvents();
-
-  // --- Logging Start ---
-  console.log('[SERVER PAGE] HomePage passing initialEvents to CalendarView:', initialEvents);
-  // --- Logging End ---
+  console.log('--- [SERVER PAGE Log] ---');
+  console.log('[SERVER PAGE] Calling fetchCalendarEvents...');
+  const initialEvents = await fetchCalendarEvents(); // Fetch fresh data
+  console.log(`[SERVER PAGE] fetchCalendarEvents returned ${initialEvents.length} events.`);
+  console.log('[SERVER PAGE] Passing events to CalendarView component.');
+  console.log('-------------------------');
 
   return (
     <main className="min-h-screen">
-       {/* Header or other layout elements can go here */}
-       {/* The CalendarView is a Client Component, but it's rendered by this Server Component */}
        <CalendarView initialEvents={initialEvents} />
     </main>
   );

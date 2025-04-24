@@ -1,7 +1,7 @@
 // components/CalendarView.tsx
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect for one-time log
+import React, { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, Views, EventProps } from 'react-big-calendar';
 // Corrected date-fns imports
 import { format } from 'date-fns/format';
@@ -47,33 +47,30 @@ const CustomEvent: React.FC<EventProps<BigCalendarEvent>> = ({ event }) => {
 };
 
 export default function CalendarView({ initialEvents }: CalendarViewProps) {
-  // --- Logging Start ---
-  // Log props received only once when the component mounts or initialEvents changes significantly
+  // --- Logging Start (Browser Console) ---
   useEffect(() => {
     console.log('[CLIENT CalendarView] Received initialEvents prop:', initialEvents);
+    const container = document.getElementById('calendar-container');
+    if (container) {
+        setTimeout(() => {
+            console.log('[CLIENT CalendarView] Calendar container height:', container.offsetHeight);
+             if (container.offsetHeight < 50) {
+                console.warn('[CLIENT CalendarView] Calendar container height seems too small. Check parent styling and CSS for h-[calc(100vh-120px)].');
+            }
+        }, 100);
+    } else {
+        console.warn('[CLIENT CalendarView] Calendar container element not found for height check.');
+    }
   }, [initialEvents]);
   // --- Logging End ---
 
   const [selectedEvent, setSelectedEvent] = useState<BigCalendarEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const events = useMemo(() => {
-      // --- Logging Start ---
-      console.log('[CLIENT CalendarView] Processing events inside useMemo. Input:', initialEvents);
-      // --- Logging End ---
-       const filtered = initialEvents.filter(event =>
-           event.start instanceof Date && !isNaN(event.start.getTime()) &&
-           event.end instanceof Date && !isNaN(event.end.getTime())
-       );
-      // --- Logging Start ---
-       console.log('[CLIENT CalendarView] Events after useMemo filter:', filtered);
-      // --- Logging End ---
-       return filtered;
-   }, [initialEvents]);
-
-   // --- Logging Start ---
-   console.log('[CLIENT CalendarView] Final events array passed to <Calendar> component:', events);
-   // --- Logging End ---
+  // Use the prop directly, ensure it's an array
+  const eventsToRender = Array.isArray(initialEvents) ? initialEvents : [];
+  // Log what's actually being passed to the Calendar component
+  console.log('[CLIENT CalendarView] Events being passed to <Calendar>:', eventsToRender);
 
 
   const handleSelectEvent = (event: BigCalendarEvent) => {
@@ -97,11 +94,18 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 h-[calc(100vh-120px)]">
+    <div id="calendar-container" className="p-4 md:p-6 lg:p-8 h-[calc(100vh-120px)]">
        <h1 className="text-3xl font-bold mb-6 text-primary">Content Calendar</h1>
+
+       {eventsToRender.length === 0 && (
+         <p className="text-center text-gray-500 my-4">
+           No events to display. Check server logs for data fetching/parsing issues, verify JSON date format (YYYY-MM-DDTHH:mm:ssZ), and ensure calendar view includes event dates.
+         </p>
+       )}
+
       <Calendar
         localizer={localizer}
-        events={events} // Pass the final processed array
+        events={eventsToRender} // Use the validated array
         startAccessor="start"
         endAccessor="end"
         style={{ height: '100%' }}
@@ -112,7 +116,9 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
         components={{
             event: CustomEvent,
         }}
+        defaultDate={new Date()} // Start view on current month/week
       />
+
       {isModalOpen && selectedEvent && (
         <EditEventModal
           event={{
