@@ -1,7 +1,7 @@
-/* app/globals.css */
+/* app/globals.css (Non-Standard Format - Revised for Status Colors) */
 
-@import "tailwindcss"; /* Non-standard import, standard is @tailwind directives */
-@import 'react-big-calendar/lib/css/react-big-calendar.css'; /* Keep react-big-calendar styles */
+@import "tailwindcss"; /* Non-standard import */
+@import 'react-big-calendar/lib/css/react-big-calendar.css'; /* Keep react-big-calendar base styles */
 
 :root {
   --background: #ffffff;
@@ -12,18 +12,15 @@
 @theme inline { /* Non-standard directive */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* The following font variables might not be automatically available
-     unless you have set up Geist Sans/Mono fonts elsewhere */
-  /* --font-sans: var(--font-geist-sans); */
-  /* --font-mono: var(--font-geist-mono); */
+  /* --font-sans: var(--font-geist-sans); */ /* Optional: Add if using Geist fonts */
+  /* --font-mono: var(--font-geist-mono); */ /* Optional: Add if using Geist fonts */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
-    /* You might want dark mode primary adjustments too if needed */
-    /* --primary: #...; */
+    /* --primary: #...; */ /* Optional: Dark mode primary adjustments */
   }
 }
 
@@ -34,35 +31,41 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* --- Styling for react-big-calendar using CSS variables/Tailwind --- */
-/* You might need to adapt these if you're not using Tailwind directives */
+/* --- Styling for react-big-calendar --- */
 
+/* Base styling for react-big-calendar event wrapper */
 .rbc-event {
-   /* Use the CSS variable or Tailwind class */
-  background-color: var(--primary);
-  border-color: var(--primary);
-  /* Or using Tailwind's @apply if PostCSS processes it */
-  /* @apply bg-primary border-primary; */
-  color: white; /* Ensure text is visible on primary background */
-  padding: 2px 5px;
-  border-radius: 4px;
+  /* --- REMOVED default background/border --- */
+  /* background-color: var(--primary); */ /* REMOVED */
+  /* border-color: var(--primary); */    /* REMOVED */
+  /* color: white; */                 /* REMOVED - Handled by CustomEvent */
+  /* padding: 2px 5px; */            /* REMOVED - Handled by CustomEvent */
+  /* border-radius: 4px; */         /* REMOVED - Handled by CustomEvent */
+
+  /* Keep border/padding/radius at 0 or none if needed to fully reset base styles */
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
 }
 
+/* Keep other .rbc styles */
 .rbc-event.rbc-selected {
-   /* Darker shade on select */
-   background-color: #5a3a9e; /* Slightly darker purple */
+   /* Adjust selected style if needed - might need !important if base styles are strong */
+   /* Example: Use a darker primary or outline */
+   outline: 2px solid #4a2f8a; /* Darker outline for selection */
+   box-shadow: 0 0 5px rgba(0,0,0,0.3);
 }
 
 .rbc-show-more {
     color: var(--primary);
 }
 .rbc-show-more:hover {
-    color: #5a3a9e; /* Slightly darker purple */
+    color: #5a3a9e;
 }
 
 .rbc-toolbar button {
     color: var(--primary);
-    border: 1px solid #ddd; /* Add subtle border */
+    border: 1px solid #ddd;
     padding: 0.3rem 0.7rem;
     border-radius: 4px;
     background: transparent;
@@ -84,7 +87,7 @@ body {
 }
 
 .rbc-toolbar button:disabled {
-    color: #999; /* Use a gray color for disabled buttons */
+    color: #999;
     cursor: not-allowed;
     opacity: 0.6;
 }
@@ -94,15 +97,15 @@ body {
   background-color: #f3eafd; /* Lighter purple for today */
 }
 
-/* Dark mode specific adjustments if needed */
+/* Dark mode specific adjustments */
 @media (prefers-color-scheme: dark) {
     .rbc-toolbar button {
         border-color: #444;
-        color: #bb86fc; /* Example: Lighter purple text for dark mode */
+        color: #bb86fc;
     }
     .rbc-toolbar button:hover:not(:disabled) {
         background-color: #bb86fc;
-        color: var(--background); /* Use dark background color for text */
+        color: var(--background);
         border-color: #bb86fc;
     }
     .rbc-toolbar button:active,
@@ -116,17 +119,15 @@ body {
     }
 
     .rbc-today {
-       background-color: #2a1a3d; /* Darker purple background for today */
+       background-color: #2a1a3d;
     }
 
-    .rbc-event {
-        background-color: #bb86fc; /* Lighter purple events in dark mode */
-        border-color: #bb86fc;
-        color: #121212; /* Dark text on light purple */
+    /* Selected event style in dark mode */
+    .rbc-event.rbc-selected {
+        outline: 2px solid #cea3ff; /* Lighter outline for dark mode */
+        box-shadow: 0 0 5px rgba(255,255,255,0.2);
     }
-     .rbc-event.rbc-selected {
-       background-color: #9e6ddb; /* Darker selected state */
-    }
+
     .rbc-show-more {
         color: #bb86fc;
     }
