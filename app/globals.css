@@ -1,0 +1,136 @@
+/* app/globals.css */
+
+@import "tailwindcss"; /* Non-standard import, standard is @tailwind directives */
+@import 'react-big-calendar/lib/css/react-big-calendar.css'; /* Keep react-big-calendar styles */
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary: #6f42c1; /* Added primary color variable */
+}
+
+@theme inline { /* Non-standard directive */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* The following font variables might not be automatically available
+     unless you have set up Geist Sans/Mono fonts elsewhere */
+  /* --font-sans: var(--font-geist-sans); */
+  /* --font-mono: var(--font-geist-mono); */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    /* You might want dark mode primary adjustments too if needed */
+    /* --primary: #...; */
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  /* This font-family overrides any font settings from @theme inline or Tailwind base */
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* --- Styling for react-big-calendar using CSS variables/Tailwind --- */
+/* You might need to adapt these if you're not using Tailwind directives */
+
+.rbc-event {
+   /* Use the CSS variable or Tailwind class */
+  background-color: var(--primary);
+  border-color: var(--primary);
+  /* Or using Tailwind's @apply if PostCSS processes it */
+  /* @apply bg-primary border-primary; */
+  color: white; /* Ensure text is visible on primary background */
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.rbc-event.rbc-selected {
+   /* Darker shade on select */
+   background-color: #5a3a9e; /* Slightly darker purple */
+}
+
+.rbc-show-more {
+    color: var(--primary);
+}
+.rbc-show-more:hover {
+    color: #5a3a9e; /* Slightly darker purple */
+}
+
+.rbc-toolbar button {
+    color: var(--primary);
+    border: 1px solid #ddd; /* Add subtle border */
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    background: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.rbc-toolbar button:hover:not(:disabled) {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.rbc-toolbar button:active,
+.rbc-toolbar button.rbc-active {
+    background-color: var(--primary);
+    color: white;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+    border-color: #5a3a9e;
+}
+
+.rbc-toolbar button:disabled {
+    color: #999; /* Use a gray color for disabled buttons */
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+
+.rbc-today {
+  background-color: #f3eafd; /* Lighter purple for today */
+}
+
+/* Dark mode specific adjustments if needed */
+@media (prefers-color-scheme: dark) {
+    .rbc-toolbar button {
+        border-color: #444;
+        color: #bb86fc; /* Example: Lighter purple text for dark mode */
+    }
+    .rbc-toolbar button:hover:not(:disabled) {
+        background-color: #bb86fc;
+        color: var(--background); /* Use dark background color for text */
+        border-color: #bb86fc;
+    }
+    .rbc-toolbar button:active,
+    .rbc-toolbar button.rbc-active {
+       background-color: #bb86fc;
+       color: var(--background);
+       border-color: #9e6ddb;
+    }
+     .rbc-toolbar button:disabled {
+       color: #666;
+    }
+
+    .rbc-today {
+       background-color: #2a1a3d; /* Darker purple background for today */
+    }
+
+    .rbc-event {
+        background-color: #bb86fc; /* Lighter purple events in dark mode */
+        border-color: #bb86fc;
+        color: #121212; /* Dark text on light purple */
+    }
+     .rbc-event.rbc-selected {
+       background-color: #9e6ddb; /* Darker selected state */
+    }
+    .rbc-show-more {
+        color: #bb86fc;
+    }
+    .rbc-show-more:hover {
+        color: #eee;
+    }
+}
