@@ -54,5 +54,13 @@
     "end": "2025-04-03T14:31:00.000Z",
     "status": "Planned",
     "notes": ""
+  },
+  {
+    "title": "Khadijah's Birthday",
+    "start": "2025-04-24T13:53:00.000Z",
+    "end": "2025-04-24T14:53:00.000Z",
+    "status": "Confirmed",
+    "notes": "",
+    "id": "ff702684-09d4-4f03-bcb2-f5fc8a71901a"
   }
 ]
