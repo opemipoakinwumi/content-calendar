@@ -16,7 +16,6 @@ export interface CalendarEvent {
 }
 
 // Define the structure expected by react-big-calendar (Date objects)
-// (We need this for the fetchCalendarEvents return type)
 interface BigCalendarEvent extends Omit<CalendarEvent, 'start' | 'end'> {
     start: Date;
     end: Date;
@@ -27,7 +26,6 @@ interface BigCalendarEvent extends Omit<CalendarEvent, 'start' | 'end'> {
 const eventSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1, 'Title is required'),
-  // Accept string datetimes, validation happens here
   start: z.string().datetime({ message: 'Invalid start date/time format' }),
   end: z.string().datetime({ message: 'Invalid end date/time format' }),
   status: z.string().min(1, 'Status is required'),
@@ -52,7 +50,7 @@ const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
 // --- GitHub API Helper Functions ---
 
-async function getFileContent(): Promise<{ content: string; sha: string | null }> { // Allow null SHA for new files
+async function getFileContent(): Promise<{ content: string; sha: string | null }> {
   try {
     const response = await octokit.repos.getContent({
       owner: REPO_OWNER!,
@@ -64,20 +62,16 @@ async function getFileContent(): Promise<{ content: string; sha: string | null }
       const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
       return { content, sha: response.data.sha };
     } else {
-       // Handle case where path is a directory or other non-file type
        console.error(`Path ${FILE_PATH} is not a file.`);
        throw new Error(`Path is not a file: ${FILE_PATH}`);
     }
 
   } catch (error: any) {
-     // *** FIX 1: Cast error.status to allow comparison with 404 ***
      if (error && (error as any).status === 404) {
         console.warn(`File ${FILE_PATH} not found during getFileContent. Assuming empty.`);
-        // If file doesn't exist, return empty array content and null sha to indicate creation
         return { content: '[]', sha: null };
      }
      console.error('GitHub API Error (getFileContent):', error.message);
-     // Log more details if available
      if (error.status) console.error('Status Code:', error.status);
      throw new Error(`Failed to fetch file from GitHub: ${error.message}`);
   }
@@ -92,21 +86,20 @@ async function updateFileContent(newContent: string, sha: string | null, commitM
       path: FILE_PATH!,
       message: commitMessage,
       content: Buffer.from(newContent).toString('base64'),
-      sha: sha ?? undefined, // Pass sha if it exists (update), otherwise undefined (create)
+      sha: sha ?? undefined,
     });
     console.log('Successfully updated file on GitHub:', FILE_PATH);
   } catch (error: any) {
     console.error('GitHub API Error (updateFileContent):', error.message);
     console.error('Request details:', { owner: REPO_OWNER, repo: REPO_NAME, path: FILE_PATH, sha });
     if (error.status) console.error('Status Code:', error.status);
-    // Provide more specific error messages if possible
-    if (error.status === 409) { // Conflict error (SHA mismatch)
+    if (error.status === 409) {
         throw new Error(`Failed to update file: Conflict detected. The file may have been updated by someone else. Please refresh and try again. ${error.message}`);
     }
-    if (error.status === 404 && sha) { // Trying to update a file that was deleted
+    if (error.status === 404 && sha) {
         throw new Error(`Failed to update file: File not found (it might have been deleted). Please refresh. ${error.message}`);
     }
-     if (error.status === 422 && error.message?.includes("sha")) { // Invalid SHA provided
+     if (error.status === 422 && error.message?.includes("sha")) {
          throw new Error(`Failed to update file: Invalid state detected (SHA mismatch). Please refresh and try again. ${error.message}`);
      }
     throw new Error(`Failed to update file on GitHub: ${error.message}`);
@@ -117,125 +110,119 @@ async function updateFileContent(newContent: string, sha: string | null, commitM
 // --- Function to fetch events specifically for the Server Action (keeping dates as strings) ---
 async function fetchRawCalendarEventsForUpdate(): Promise<{ events: CalendarEvent[], sha: string | null }> {
     console.log('Fetching raw calendar events for update...');
-    const { content, sha } = await getFileContent(); // sha can be null if file doesn't exist
+    const { content, sha } = await getFileContent();
     try {
-        const events: CalendarEvent[] = JSON.parse(content || '[]'); // Default to empty array if content is null/empty
+        const events: CalendarEvent[] = JSON.parse(content || '[]');
         if (!Array.isArray(events)) throw new Error("Parsed content is not an array");
-        // Dates remain strings here
         return { events, sha };
     } catch (parseError: any) {
         console.error("Failed to parse existing JSON for update:", parseError);
-        // If parsing fails drastically, maybe return an error state? Or attempt recovery?
-        // For now, treat as empty, but retain the sha if it existed.
-        // If sha was null (file didn't exist), this is fine. If sha existed but content was bad,
-        // the update might fail later if the sha is required.
-        return { events: [], sha }; // Return empty array, keep original sha status
+        return { events: [], sha };
     }
 }
 
 // --- Server Action: Update Event (Refined) ---
 export async function updateCalendarEventRefined(
-  // Input data can have string dates from the form/modal
   updatedEventData: Omit<CalendarEvent, 'id'> & { id: string }
-): Promise<{ success: boolean; message: string; errors?: z.ZodIssue[] }> { // Return Zod issues for better form errors
+): Promise<{ success: boolean; message: string; errors?: z.ZodIssue[] }> {
   console.log('Server Action: updateCalendarEventRefined called with:', updatedEventData);
 
-   // Validate the input data (expects string dates)
    const validationResult = eventSchema.safeParse(updatedEventData);
    if (!validationResult.success) {
        console.error('Validation failed:', validationResult.error.flatten());
        return {
            success: false,
            message: 'Invalid data provided. Please check the fields.',
-           // Return Zod errors for detailed feedback
            errors: validationResult.error.issues,
        };
    }
-   const validatedEvent = validationResult.data; // Data is valid, dates are still strings
+   const validatedEvent = validationResult.data;
 
   try {
-      // Fetch current data and the SHA needed for update/create
       const { events: currentEvents, sha } = await fetchRawCalendarEventsForUpdate();
 
       const eventIndex = currentEvents.findIndex((e) => e.id === validatedEvent.id);
       if (eventIndex === -1) {
-          // Optionally, implement event creation here if ID not found
           return { success: false, message: `Event with ID ${validatedEvent.id} not found.` };
       }
 
-      // Update the event in the array (dates are already valid strings from validation)
-      currentEvents[eventIndex] = {
-          ...validatedEvent, // validatedEvent already has the correct string format dates
-      };
+      currentEvents[eventIndex] = { ...validatedEvent };
 
       const updatedJsonString = JSON.stringify(currentEvents, null, 2);
       const commitMessage = `Update event: ${validatedEvent.title} (ID: ${validatedEvent.id})`;
-
-      // Commit the changes using the fetched SHA (can be null for creation)
       await updateFileContent(updatedJsonString, sha, commitMessage);
 
-      revalidatePath('/'); // Revalidate the page cache
-
+      revalidatePath('/');
       console.log('Server Action: updateCalendarEventRefined completed successfully.');
       return { success: true, message: 'Event updated successfully!' };
 
   } catch (error: any) {
       console.error('Error in updateCalendarEventRefined Server Action:', error);
-      // Return specific error messages caught from updateFileContent
       return { success: false, message: `Failed to update event: ${error.message}` };
   }
 }
 
 
 // --- Server Action: Fetch Events (for Client Component) ---
-// Fetches data and converts dates to Date objects for react-big-calendar
-// *** FIX 2: Changed return type to Promise<BigCalendarEvent[]> ***
 export async function fetchCalendarEvents(): Promise<BigCalendarEvent[]> {
-  console.log('Fetching calendar events from GitHub for display...');
-  // Use raw URL for potentially faster reads, assuming main branch
+  // --- Logging Start ---
+  console.log('[SERVER ACTION] Fetching calendar events from GitHub for display...');
   const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${FILE_PATH}`; // Adjust branch if needed
+  console.log('[SERVER ACTION] Fetching from URL:', rawUrl);
+  // --- Logging End ---
 
   try {
     const response = await fetch(rawUrl, {
       headers: {
-        // Add token ONLY if the repo is private AND raw access requires it. Often not needed if Vercel/deployment has repo access.
-        // 'Authorization': `token ${GITHUB_TOKEN}`,
-        'Cache-Control': 'no-cache', // Ensure fresh data is fetched from GitHub raw
+        'Cache-Control': 'no-cache',
       },
       next: {
-          revalidate: 0, // Revalidate on demand (triggered by revalidatePath) - Recommended
-          // Or use time-based: revalidate: 60, // Revalidate data approx every 60 seconds
-          tags: ['calendarData'], // Tag for potential on-demand revalidation via API later
+          revalidate: 0, // On-demand revalidation
+          tags: ['calendarData'],
       }
     });
 
+    // --- Logging Start ---
+    console.log('[SERVER ACTION] Fetch response status:', response.status);
+    // --- Logging End ---
+
     if (!response.ok) {
         if (response.status === 404) {
-            console.warn(`Calendar data file not found at ${rawUrl}. Returning empty array. Please ensure the file exists at data/content-calendar.json in the main branch.`);
-            return []; // Return empty array if file doesn't exist yet
+            console.warn(`[SERVER ACTION] Calendar data file not found at ${rawUrl}. Returning empty array.`);
+            return [];
         }
       throw new Error(`Failed to fetch calendar data: ${response.status} ${response.statusText} from ${rawUrl}`);
     }
 
     const jsonText = await response.text();
+    // --- Logging Start ---
+    console.log('[SERVER ACTION] Fetched Raw JSON Text:', jsonText.substring(0, 500) + '...');
+    // --- Logging End ---
+
      if (!jsonText) {
-        console.warn("Calendar data file is empty. Returning empty array.");
+        console.warn("[SERVER ACTION] Calendar data file is empty. Returning empty array.");
         return [];
     }
 
     // Parse the JSON (expecting CalendarEvent[] with string dates)
     const data: CalendarEvent[] = JSON.parse(jsonText);
+    // --- Logging Start ---
+    console.log('[SERVER ACTION] Parsed JSON Data (raw):', data);
+    // --- Logging End ---
 
     if (!Array.isArray(data)) {
         throw new Error("Fetched data is not a valid JSON array.");
     }
 
-    // *** Convert to BigCalendarEvent[] with Date objects and filter invalid dates ***
-    return data
+    // Convert to BigCalendarEvent[] with Date objects and filter invalid dates
+    const processedEvents = data
       .map(event => {
         const start = new Date(event.start);
         const end = new Date(event.end);
-        // Return event with Date objects ONLY if dates are valid
+        // --- Logging Start ---
+        // Log conversion attempt for each event
+        console.log(`[SERVER ACTION] Processing Event ID ${event.id}: Start String='${event.start}', End String='${event.end}', Start Date=${start}, End Date=${end}, Start Valid=${!isNaN(start.getTime())}, End Valid=${!isNaN(end.getTime())}`);
+        // --- Logging End ---
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
             return {
                 ...event,
@@ -243,16 +230,20 @@ export async function fetchCalendarEvents(): Promise<BigCalendarEvent[]> {
                 end: end,
             };
         } else {
-            console.warn(`Invalid date format encountered for event ID ${event.id}: start='${event.start}', end='${event.end}'. Skipping event.`);
+            console.warn(`[SERVER ACTION] Invalid date format encountered for event ID ${event.id}: start='${event.start}', end='${event.end}'. Skipping event.`);
             return null; // Return null for invalid events
         }
       })
       .filter((event): event is BigCalendarEvent => event !== null); // Filter out the nulls and assert type
 
+    // --- Logging Start ---
+    console.log('[SERVER ACTION] Final Processed Events (with Date objects):', processedEvents);
+    // --- Logging End ---
+    return processedEvents;
+
 
   } catch (error: any) {
-    console.error("Error fetching or processing calendar events:", error);
-    // Don't crash the page load, return an empty array
+    console.error("[SERVER ACTION] Error fetching or processing calendar events:", error);
     return [];
   }
 }

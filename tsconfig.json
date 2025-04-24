@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -11,7 +10,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "preserve", // <-- Ensure this is "preserve"
     "incremental": true,
     "plugins": [
       {
@@ -20,8 +19,15 @@
     ],
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    // Add target if needed, usually inferred by Next.js
+    "target": "es2017" // Or "es5", "es2015" etc., if you have specific needs
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

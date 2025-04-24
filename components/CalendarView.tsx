@@ -1,7 +1,7 @@
 // components/CalendarView.tsx
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect for one-time log
 import { Calendar, dateFnsLocalizer, Views, EventProps } from 'react-big-calendar';
 // Corrected date-fns imports
 import { format } from 'date-fns/format';
@@ -31,12 +31,10 @@ interface BigCalendarEvent extends Omit<CalendarEvent, 'start' | 'end'> {
     end: Date;
 }
 
-// --- Corrected Props Interface ---
-// Expects initialEvents with Date objects, matching fetchCalendarEvents return type
+// Corrected Props Interface
 interface CalendarViewProps {
   initialEvents: BigCalendarEvent[];
 }
-// --- End of Props Interface Correction ---
 
 // Custom Event component (Optional)
 const CustomEvent: React.FC<EventProps<BigCalendarEvent>> = ({ event }) => {
@@ -49,23 +47,37 @@ const CustomEvent: React.FC<EventProps<BigCalendarEvent>> = ({ event }) => {
 };
 
 export default function CalendarView({ initialEvents }: CalendarViewProps) {
-  // State for the selected event (using Date objects for internal calendar state)
+  // --- Logging Start ---
+  // Log props received only once when the component mounts or initialEvents changes significantly
+  useEffect(() => {
+    console.log('[CLIENT CalendarView] Received initialEvents prop:', initialEvents);
+  }, [initialEvents]);
+  // --- Logging End ---
+
   const [selectedEvent, setSelectedEvent] = useState<BigCalendarEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Memoize and validate the events received from props
-  // Since props now provide BigCalendarEvent[], we primarily just filter invalid ones
   const events = useMemo(() => {
-       return initialEvents.filter(event =>
+      // --- Logging Start ---
+      console.log('[CLIENT CalendarView] Processing events inside useMemo. Input:', initialEvents);
+      // --- Logging End ---
+       const filtered = initialEvents.filter(event =>
            event.start instanceof Date && !isNaN(event.start.getTime()) &&
            event.end instanceof Date && !isNaN(event.end.getTime())
        );
+      // --- Logging Start ---
+       console.log('[CLIENT CalendarView] Events after useMemo filter:', filtered);
+      // --- Logging End ---
+       return filtered;
    }, [initialEvents]);
+
+   // --- Logging Start ---
+   console.log('[CLIENT CalendarView] Final events array passed to <Calendar> component:', events);
+   // --- Logging End ---
 
 
   const handleSelectEvent = (event: BigCalendarEvent) => {
-    console.log('Event selected:', event);
-    // Store the selected event with Date objects
+    console.log('[CLIENT CalendarView] Event selected:', event);
     setSelectedEvent(event);
     setIsModalOpen(true);
   };
@@ -75,52 +87,41 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
     setSelectedEvent(null);
   };
 
-  // Server action function passed to the modal
-  // This function expects the CalendarEvent format (string dates) from the modal
   const handleSaveEvent = async (updatedEventData: CalendarEvent) => {
-      console.log('Calling Server Action from CalendarView with:', updatedEventData);
+      console.log('[CLIENT CalendarView] Calling Server Action handleSaveEvent with:', updatedEventData);
       if (!updatedEventData.id) {
-        console.error("Event ID missing in handleSaveEvent");
+        console.error("[CLIENT CalendarView] Event ID missing in handleSaveEvent");
         return { success: false, message: "Event ID is missing." };
       }
-      // Call the imported Server Action directly
       return await updateCalendarEventRefined(updatedEventData);
   };
 
   return (
-    // Main container div
-    <div className="p-4 md:p-6 lg:p-8 h-[calc(100vh-120px)]"> {/* Adjust height as needed */}
+    <div className="p-4 md:p-6 lg:p-8 h-[calc(100vh-120px)]">
        <h1 className="text-3xl font-bold mb-6 text-primary">Content Calendar</h1>
-
-      {/* React Big Calendar component */}
       <Calendar
         localizer={localizer}
-        events={events} // Pass the validated events (BigCalendarEvent[])
-        startAccessor="start" // Accessor expects Date object
-        endAccessor="end"     // Accessor expects Date object
+        events={events} // Pass the final processed array
+        startAccessor="start"
+        endAccessor="end"
         style={{ height: '100%' }}
         views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
         selectable
-        onSelectEvent={handleSelectEvent} // Called when an event is clicked
+        onSelectEvent={handleSelectEvent}
         popup
         components={{
-            event: CustomEvent, // Use custom styling for events
+            event: CustomEvent,
         }}
-        // Add more react-big-calendar props here if needed
       />
-
-      {/* Edit Event Modal */}
-      {/* Render modal only when an event is selected */}
-      {/* Convert selectedEvent (Date objects) back to CalendarEvent (string dates) for the modal */}
       {isModalOpen && selectedEvent && (
         <EditEventModal
           event={{
-              ...selectedEvent, // Copy id, title, status, notes
-              start: selectedEvent.start.toISOString(), // Convert Date -> ISO String
-              end: selectedEvent.end.toISOString(),     // Convert Date -> ISO String
+              ...selectedEvent,
+              start: selectedEvent.start.toISOString(),
+              end: selectedEvent.end.toISOString(),
           }}
           onClose={handleCloseModal}
-          onSave={handleSaveEvent} // Pass the server action handler
+          onSave={handleSaveEvent}
         />
       )}
     </div>

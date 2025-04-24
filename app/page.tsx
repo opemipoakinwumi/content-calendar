@@ -9,9 +9,10 @@ import CalendarView from '@/components/CalendarView'; // Client Component for th
 export default async function HomePage() {
   // Fetch data on the server during rendering
   const initialEvents = await fetchCalendarEvents();
-   // Dates might be strings or Date objects depending on fetchCalendarEvents implementation
-   // CalendarView expects Date objects, so ensure fetchCalendarEvents provides them
-   // Or handle conversion within CalendarView as done above
+
+  // --- Logging Start ---
+  console.log('[SERVER PAGE] HomePage passing initialEvents to CalendarView:', initialEvents);
+  // --- Logging End ---
 
   return (
     <main className="min-h-screen">
