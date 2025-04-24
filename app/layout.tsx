@@ -1,7 +1,6 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import Head from 'next/head'; // Optional: May help with specific hydration issues if they reappear
 import "./globals.css"; // Import global styles
 
 const inter = Inter({ subsets: ["latin"] });

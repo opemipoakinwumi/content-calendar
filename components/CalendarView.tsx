@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Calendar, dateFnsLocalizer, Views, EventProps, SlotInfo, stringOrDate } from 'react-big-calendar';
-import withDragAndDrop, { withDragAndDropProps, EventInteractionArgs } from 'react-big-calendar/lib/addons/dragAndDrop';
+import { Calendar, dateFnsLocalizer, Views, EventProps, SlotInfo } from 'react-big-calendar';
+import withDragAndDrop, { EventInteractionArgs } from 'react-big-calendar/lib/addons/dragAndDrop';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
