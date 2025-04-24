@@ -1,33 +1,34 @@
 [
     {
-      "id": "evt-1",
-      "title": "Blog Post: Next.js 14 Features",
-      "start": "2024-08-15T09:00:00Z",
-      "end": "2024-08-15T10:00:00Z",
-      "status": "Draft",
-      "notes": "Cover Server Actions and new caching."
-    },
-    {
-      "id": "evt-2",
-      "title": "Social Media Campaign Launch",
-      "start": "2024-08-20T14:00:00Z",
-      "end": "2024-08-20T15:00:00Z",
-      "status": "Planned",
-      "notes": "Coordinate graphics and copy."
-    },
-    {
-      "id": "evt-3",
-      "title": "Team Sync: Q4 Planning",
-      "start": "2024-08-22T11:00:00Z",
-      "end": "2024-08-22T12:30:00Z",
+      "id": "evt-correct-1",
+      "title": "Planning Meeting: October Goals",
+      "start": "2024-09-25T10:00:00Z",
+      "end": "2024-09-25T11:30:00Z",
       "status": "Confirmed",
+      "notes": "Finalize targets for next month."
+    },
+    {
+      "id": "evt-correct-2",
+      "title": "Draft Blog Post: Using Next.js 15",
+      "start": "2024-09-26T14:00:00Z",
+      "end": "2024-09-26T16:00:00Z",
+      "status": "Draft",
+      "notes": "Focus on App Router features and RSCs."
+    },
+    {
+      "id": "evt-correct-3",
+      "title": "Social Media Schedule Final Review",
+      "start": "2024-09-27T09:00:00Z",
+      "end": "2024-09-27T09:30:00Z",
+      "status": "Needs Review",
       "notes": ""
-    }, {
-        "id": "evt-4",
-        "title": "Team Sync: Q4 Planning",
-        "start": "2024-04-25T11:00:00Z",
-        "end": "2024-04-25T12:30:00Z",
-        "status": "Confirmed",
-        "notes": ""
-      }
+    },
+    {
+      "id": "evt-correct-4",
+      "title": "Deploy Feature X to Staging",
+      "start": "2024-09-30T15:00:00Z",
+      "end": "2024-09-30T15:30:00Z",
+      "status": "Planned",
+      "notes": "Coordinate with QA team."
+    }
   ]
