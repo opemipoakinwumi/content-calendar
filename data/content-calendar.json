@@ -46,5 +46,13 @@
     "status": "In Progress",
     "notes": "- Contact vendors.\n- Prepare events.",
     "id": "0a6b0828-0f6a-401e-9431-31135dbb0de1"
+  },
+  {
+    "title": "Customer Testimonial Post",
+    "start": "2025-04-25T20:06:00.000Z",
+    "end": "2025-04-25T21:06:00.000Z",
+    "status": "In Progress",
+    "notes": "- Reach out to the customers",
+    "id": "4c334ac2-a7e6-4118-be88-9e280315a83d"
   }
 ]
