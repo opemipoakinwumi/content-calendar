@@ -70,5 +70,13 @@
     "end": "2025-04-14T21:06:00.000Z",
     "status": "Needs Review",
     "notes": ""
+  },
+  {
+    "title": "Educational Content",
+    "start": "2025-04-25T20:06:00.000Z",
+    "end": "2025-04-25T21:06:00.000Z",
+    "status": "Confirmed",
+    "notes": "",
+    "id": "20a431fb-7470-4b79-911a-70eaf9610f98"
   }
 ]
