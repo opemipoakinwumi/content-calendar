@@ -54,5 +54,13 @@
     "end": "2025-04-24T21:06:00.000Z",
     "status": "Published",
     "notes": "- Reach out to the customers"
+  },
+  {
+    "title": "Partner Spotlight",
+    "start": "2025-04-25T20:06:00.000Z",
+    "end": "2025-04-25T21:06:00.000Z",
+    "status": "Draft",
+    "notes": "",
+    "id": "b709ecfb-2925-4eff-b1b9-ef41ee20bf7a"
   }
 ]
