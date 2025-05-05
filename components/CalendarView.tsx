@@ -1,7 +1,5 @@
+// --- START FILE: components/CalendarView.tsx ---
 
-
-// --- File: components/CalendarView.tsx ---
-// components/CalendarView.tsx (with Optimistic Update for Drag & Drop)
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -114,13 +112,14 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
     setIsModalOpen(true);
   };
 
-   const handleSelectSlot = useCallback(({ start, end }: SlotInfo) => {
+   // Open modal for adding from an empty slot click
+   const handleSelectSlot = useCallback(({ start }: SlotInfo) => { // <-- CORRECTED: Only destructure 'start'
         // 'start' here refers to the beginning of the selected empty slot time
         console.log('[CLIENT CalendarView] Opening Add Modal from slot selection. Slot starts at:', start);
-        setSelectedEvent(null);
+        setSelectedEvent(null); // Signal Add Mode
         setIsModalOpen(true);
         // TODO: Could enhance modal to pre-fill Approval Date ('start') based on the clicked slot's 'start' time
-    }, []);
+    }, []); // No dependencies needed if it only sets state based on arguments
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -186,9 +185,10 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
           console.log(`[CLIENT DND Optimistic] Server update successful for ${event.id}. Revalidation pending.`);
           // Success: UI already updated.
         }
-      } catch (error) {
+      } catch (error: unknown) { // Use unknown for better type safety
+        const message = error instanceof Error ? error.message : "An unexpected error occurred";
         console.error("[CLIENT DND Optimistic] Error calling update action after drop:", error);
-        alert("An unexpected error occurred while saving the schedule change. Reverting change.");
+        alert(`An unexpected error occurred while saving the schedule change: ${message}. Reverting change.`);
         setLocalEvents(originalEvents); // Rollback on unexpected errors
       }
     },
@@ -251,7 +251,7 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
                 views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
                 selectable
                 onSelectEvent={handleSelectEvent}
-                onSelectSlot={handleSelectSlot} // 'start'/'end' in slot info refer to slot timing
+                onSelectSlot={handleSelectSlot} // Pass the corrected handler
                 popup
                 components={{ event: CustomEvent }}
                 defaultDate={new Date()}
@@ -273,8 +273,9 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
               notes: selectedEvent.notes,
               attachment: selectedEvent.attachment,
               // Convert Date objects (Approval/Publishing) to ISO strings for the modal's input fields
-              start: (selectedEvent.start instanceof Date ? selectedEvent.start : new Date(selectedEvent.start)).toISOString(), // Approval Date
-              end: (selectedEvent.end instanceof Date ? selectedEvent.end : new Date(selectedEvent.end)).toISOString(),         // Publishing Date
+              // Safely handle potential non-Date types before calling toISOString
+              start: (selectedEvent.start instanceof Date ? selectedEvent.start : new Date(selectedEvent.start)).toISOString().slice(0, 16), // Use format for datetime-local
+              end: (selectedEvent.end instanceof Date ? selectedEvent.end : new Date(selectedEvent.end)).toISOString().slice(0, 16),         // Use format for datetime-local
           } : null}
           onClose={handleCloseModal}
         />
@@ -282,3 +283,5 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
     </div>
   );
 }
+
+// --- END FILE: components/CalendarView.tsx ---
