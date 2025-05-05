@@ -1,16 +1,17 @@
+// --- File: components/EditEventModal.tsx ---
 // components/EditEventModal.tsx
 'use client';
 
 import React, { useState, useEffect, FormEvent } from 'react';
 import {
-    CalendarEvent,
+    CalendarEvent, // IMPORTANT: Make sure this type includes 'attachment?: string | null;'
     updateCalendarEventRefined,
     createCalendarEvent,
     deleteCalendarEvent
-} from '@/app/actions';
+} from '@/app/actions'; // IMPORTANT: Update these actions to handle the 'attachment' field
 import { ZodIssue } from 'zod';
 
-// Props Interface (onSave removed)
+// Props Interface
 interface EditEventModalProps {
   event: CalendarEvent | null;
   onClose: () => void;
@@ -21,26 +22,33 @@ const formatDateForInput = (date: Date | string | undefined): string => {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '';
-  const year = d.getFullYear();
-  const month = (d.getMonth() + 1).toString().padStart(2, '0');
-  const day = d.getDate().toString().padStart(2, '0');
-  const hours = d.getHours().toString().padStart(2, '0');
-  const minutes = d.getMinutes().toString().padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  // Standard ISO format suitable for datetime-local
+  return d.toISOString().slice(0, 16);
 };
 
+// Define the shape of the form data including the new attachment field
+interface EventFormData {
+    title: string;
+    start: string; // Corresponds to Approval Date (internal name remains 'start')
+    end: string;   // Corresponds to Publishing Date (internal name remains 'end')
+    status: string;
+    notes: string;
+    attachment: string; // New field for attachment links
+}
+
 // Default Form Data
-const defaultFormData = {
+const defaultFormData: EventFormData = {
     title: '',
-    start: formatDateForInput(new Date()),
-    end: formatDateForInput(new Date(Date.now() + 60 * 60 * 1000)),
+    start: formatDateForInput(new Date()), // Default Approval Date
+    end: formatDateForInput(new Date(Date.now() + 60 * 60 * 1000)), // Default Publishing Date
     status: '',
     notes: '',
+    attachment: '', // Initialize attachment as empty
 };
 
 export default function EditEventModal({ event, onClose }: EditEventModalProps) {
   const isEditMode = !!event?.id;
-  const [formData, setFormData] = useState<Omit<CalendarEvent, 'id'>>(defaultFormData);
+  const [formData, setFormData] = useState<EventFormData>(defaultFormData);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,31 +59,53 @@ export default function EditEventModal({ event, onClose }: EditEventModalProps) 
     if (isEditMode && event) {
       setFormData({
         title: event.title,
-        start: formatDateForInput(event.start),
-        end: formatDateForInput(event.end),
+        start: formatDateForInput(event.start), // Approval Date
+        end: formatDateForInput(event.end),     // Publishing Date
         status: event.status,
         notes: event.notes || '',
+        attachment: event.attachment || '',
       });
-    } else { setFormData(defaultFormData); }
-    setErrorMessage(null); setFieldErrors(null);
+    } else {
+      setFormData(defaultFormData);
+    }
+    setErrorMessage(null);
+    setFieldErrors(null);
   }, [event, isEditMode]);
 
   // Input change handler
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (fieldErrors?.[name]) { setFieldErrors(prev => ({...prev, [name]: undefined})); }
-    setErrorMessage(null);
+    if (fieldErrors?.[name]) {
+        setFieldErrors(prev => {
+            if (!prev) return null;
+            const updatedErrors = { ...prev };
+            delete updatedErrors[name];
+            return Object.keys(updatedErrors).length === 0 ? null : updatedErrors;
+        });
+    }
+    if (errorMessage) setErrorMessage(null);
   };
 
   // Form Submit Handler (Create/Update)
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); setIsLoading(true); setErrorMessage(null); setFieldErrors(null);
-    const dataToSend = { ...formData, start: formData.start ? new Date(formData.start).toISOString() : '', end: formData.end ? new Date(formData.end).toISOString() : '' };
+
+    // Prepare data, ensuring dates are ISO strings
+    const dataToSend = {
+        ...formData,
+        start: formData.start ? new Date(formData.start).toISOString() : '', // Approval Date
+        end: formData.end ? new Date(formData.end).toISOString() : '',       // Publishing Date
+    };
+
     let result: { success: boolean; message: string; errors?: ZodIssue[] };
+
     try {
-        if (isEditMode && event?.id) { result = await updateCalendarEventRefined({ ...dataToSend, id: event.id }); }
-        else { result = await createCalendarEvent(dataToSend); }
+        if (isEditMode && event?.id) {
+            result = await updateCalendarEventRefined({ ...dataToSend, id: event.id });
+        } else {
+            result = await createCalendarEvent(dataToSend);
+        }
         setIsLoading(false);
         if (result.success) { onClose(); }
         else {
@@ -120,7 +150,7 @@ export default function EditEventModal({ event, onClose }: EditEventModalProps) 
         </h2>
         <form onSubmit={handleSubmit}>
           {/* General Error Message */}
-          {errorMessage && !Object.values(fieldErrors ?? {}).some(v => v && v.length > 0) && ( // Show only if no specific field errors exist
+          {errorMessage && !fieldErrors && (
             <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-600 rounded-md text-sm">
               {errorMessage}
             </div>
@@ -131,15 +161,18 @@ export default function EditEventModal({ event, onClose }: EditEventModalProps) 
             <input type="text" id="title" name="title" value={formData.title} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60" disabled={isLoading || isDeleting}/>
              {fieldErrors?.title && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.title.join(', ')}</p>}
           </div>
-          {/* Start/End Time Inputs */}
+          {/* Approval/Publishing Date Inputs */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label htmlFor="start" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Time <span className="text-red-500">*</span></label>
+              {/* Label Changed Here */}
+              <label htmlFor="start" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Approval Date <span className="text-red-500">*</span></label>
+              {/* Input name/id remains 'start' */}
               <input type="datetime-local" id="start" name="start" value={formData.start} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60 appearance-none" disabled={isLoading || isDeleting}/>
                {fieldErrors?.start && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.start.join(', ')}</p>}
             </div>
             <div>
-              <label htmlFor="end" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Time <span className="text-red-500">*</span></label>
+              <label htmlFor="end" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Publishing Date <span className="text-red-500">*</span></label>
+              {/* Input name/id remains 'end' */}
               <input type="datetime-local" id="end" name="end" value={formData.end} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60 appearance-none" disabled={isLoading || isDeleting}/>
               {fieldErrors?.end && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.end.join(', ')}</p>}
             </div>
@@ -154,10 +187,16 @@ export default function EditEventModal({ event, onClose }: EditEventModalProps) 
              {fieldErrors?.status && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.status.join(', ')}</p>}
           </div>
           {/* Notes Textarea */}
-          <div className="mb-6">
+          <div className="mb-4">
             <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
-            <textarea id="notes" name="notes" rows={3} value={formData.notes} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60" disabled={isLoading || isDeleting} placeholder="Add any relevant details or links..."/>
+            <textarea id="notes" name="notes" rows={3} value={formData.notes} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60" disabled={isLoading || isDeleting} placeholder="Add any relevant details..."/>
               {fieldErrors?.notes && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.notes.join(', ')}</p>}
+          </div>
+          {/* Attachment Textarea */}
+          <div className="mb-6">
+            <label htmlFor="attachment" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Attachment Links</label>
+            <textarea id="attachment" name="attachment" rows={2} value={formData.attachment} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60" disabled={isLoading || isDeleting} placeholder="Enter attachment URLs, one per line if multiple..."/>
+              {fieldErrors?.attachment && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.attachment.join(', ')}</p>}
           </div>
           {/* Action Buttons Area */}
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700 mt-2">
@@ -167,7 +206,7 @@ export default function EditEventModal({ event, onClose }: EditEventModalProps) 
                      <button type="button" onClick={handleDelete} disabled={isDeleting || isLoading} className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 bg-red-600 text-white rounded-lg font-semibold text-sm shadow-md hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-500 dark:focus-visible:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-all duration-150 ease-in-out">
                         {isDeleting ? <><Spinner /> Deleting...</> : '🗑️ Delete'}
                      </button>
-                 ) : (<div className="h-11"></div>) /* Placeholder */}
+                 ) : (<div className="h-11"></div>)}
              </div>
              {/* Cancel & Save/Create Buttons */}
             <div className="flex gap-4 w-full sm:w-auto justify-end">

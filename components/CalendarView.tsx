@@ -1,3 +1,6 @@
+
+
+// --- File: components/CalendarView.tsx ---
 // components/CalendarView.tsx (with Optimistic Update for Drag & Drop)
 'use client';
 
@@ -17,24 +20,24 @@ import { enUS } from 'date-fns/locale/en-US';
 // Components and Actions
 import EditEventModal from './EditEventModal';
 import {
-    CalendarEvent,         // Interface with string dates (for actions/modal)
-    BigCalendarEvent,      // Interface with Date objects (for calendar rendering)
-    updateCalendarEventRefined, // Action for updating events
+    CalendarEvent,         // Interface for actions/modal (uses 'start', 'end') - Ensure includes 'attachment'
+    BigCalendarEvent,      // Interface for calendar rendering (uses 'start', 'end') - Ensure includes 'attachment'
+    updateCalendarEventRefined, // Action for updating events - Ensure handles 'attachment'
  } from '@/app/actions';
 
 // Setup the date-fns localizer
 const locales = { 'en-US': enUS };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek: () => startOfWeek(new Date(), { locale: enUS }), getDay, locales });
 
-// Create the Drag-and-Drop enabled Calendar component, specifying our event type
+// Create the Drag-and-Drop enabled Calendar component
 const DnDCalendar = withDragAndDrop<BigCalendarEvent>(Calendar);
 
 // Props Interface
 interface CalendarViewProps {
-    initialEvents: BigCalendarEvent[]; // Events received from the server (source of truth)
+    initialEvents: BigCalendarEvent[]; // Should include 'attachment'
 }
 
-// Status Colors Mapping (as before)
+// Status Colors Mapping
 const statusColors: { [key: string]: string } = {
     'Draft': 'bg-gray-400 hover:bg-gray-500 border-gray-500',
     'Planned': 'bg-blue-500 hover:bg-blue-600 border-blue-700',
@@ -46,7 +49,7 @@ const statusColors: { [key: string]: string } = {
     'Default': 'bg-primary hover:bg-purple-700 border-purple-800',
 };
 
-// Custom Event Component (as before)
+// Custom Event Component
 const CustomEvent: React.FC<EventProps<BigCalendarEvent>> = ({ event }) => {
   const colorClass = statusColors[event.status] || statusColors['Default'];
   const textColorClass = event.status === 'In Progress' ? 'text-black' : 'text-white';
@@ -62,17 +65,13 @@ const CustomEvent: React.FC<EventProps<BigCalendarEvent>> = ({ event }) => {
 // --- Main Calendar View Component ---
 export default function CalendarView({ initialEvents }: CalendarViewProps) {
   // --- State Management ---
-  // Local state to hold events for rendering. Initialized with props. This enables optimistic updates.
   const [localEvents, setLocalEvents] = useState<BigCalendarEvent[]>(initialEvents);
-  // Modal state
   const [selectedEvent, setSelectedEvent] = useState<BigCalendarEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // Filter/Search state
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   // --- Synchronization Effect ---
-  // Update local state if the initialEvents prop changes (e.g., after server revalidation)
   useEffect(() => {
     console.log("[CLIENT CalendarView] Prop 'initialEvents' changed, updating local state.");
     setLocalEvents(initialEvents);
@@ -80,13 +79,11 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
 
 
   // --- Derived State (Filtering/Searching) ---
-  // Calculate unique statuses based on the *local* events state
   const uniqueStatuses = useMemo(() => {
     const statuses = new Set(localEvents.map(event => event.status));
     return Array.from(statuses).sort();
-  }, [localEvents]); // Depends on localEvents now
+  }, [localEvents]);
 
-  // Filter and search the *local* events state
   const filteredEvents = useMemo(() => {
     let events = Array.isArray(localEvents) ? localEvents : [];
     if (statusFilter) {
@@ -96,111 +93,106 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
       const lowerSearchTerm = searchTerm.toLowerCase();
       events = events.filter(event =>
         event.title.toLowerCase().includes(lowerSearchTerm) ||
-        (event.notes && event.notes.toLowerCase().includes(lowerSearchTerm))
+        (event.notes && event.notes.toLowerCase().includes(lowerSearchTerm)) ||
+        (event.attachment && event.attachment.toLowerCase().includes(lowerSearchTerm)) // Search attachments too
       );
     }
-    // console.log(`[CLIENT CalendarView] Filtered/Searched Events Count: ${events.length}`);
-    return events; // Return the list to be rendered
-  }, [localEvents, statusFilter, searchTerm]); // Depends on localEvents
+    return events;
+  }, [localEvents, statusFilter, searchTerm]);
 
 
   // --- Event Handlers ---
-  // Select existing event for editing
   const handleSelectEvent = (event: BigCalendarEvent) => {
     console.log('[CLIENT CalendarView] Event selected for edit:', event.id);
-    setSelectedEvent(event); // Store event with Date objects
+    setSelectedEvent(event); // Store event with Date objects, including 'start' and 'attachment'
     setIsModalOpen(true);
   };
 
-  // Open modal for adding a new event
   const handleOpenAddModal = () => {
     console.log('[CLIENT CalendarView] Opening Add Modal');
-    setSelectedEvent(null); // Null signifies "Add" mode
+    setSelectedEvent(null);
     setIsModalOpen(true);
   };
 
-  // Open modal for adding from an empty slot click
    const handleSelectSlot = useCallback(({ start, end }: SlotInfo) => {
-        console.log('[CLIENT CalendarView] Opening Add Modal from slot selection:', start, end);
-        setSelectedEvent(null); // Signal Add Mode
+        // 'start' here refers to the beginning of the selected empty slot time
+        console.log('[CLIENT CalendarView] Opening Add Modal from slot selection. Slot starts at:', start);
+        setSelectedEvent(null);
         setIsModalOpen(true);
-        // TODO: Enhance modal to pre-fill dates from start/end args
+        // TODO: Could enhance modal to pre-fill Approval Date ('start') based on the clicked slot's 'start' time
     }, []);
 
-  // Close the Add/Edit modal
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setSelectedEvent(null); // Clear selection
+    setSelectedEvent(null);
   };
 
   // --- Optimistic Drag and Drop Handler ---
    type OnEventDropFn = (args: EventInteractionArgs<BigCalendarEvent>) => void;
 
    const handleEventDrop = useCallback<OnEventDropFn>(
+    // 'start' and 'end' arguments from the library refer to the new drop times
     async ({ event, start, end }) => {
-      // 0. Validate Inputs from DND library
-      if (!(start instanceof Date) || !(end instanceof Date)) {
-         console.error("[CLIENT DND Optimistic] Dropped event has invalid start/end types:", start, end);
-         alert("Error processing dropped event dates.");
+      // 0. Validate Inputs
+      if (!(start instanceof Date) || !(end instanceof Date) || start >= end) {
+         console.error("[CLIENT DND Optimistic] Invalid approval/publishing dates on drop:", start, end);
+         alert("Error: Invalid date range for dropped event.");
          return;
       }
-      if (start >= end) {
-        console.warn("[CLIENT DND Optimistic] Dropped event has start >= end. Ignoring.");
-        alert("Event end time must be after start time.");
-        return; // Don't proceed if dates are invalid
-      }
 
-      console.log(`[CLIENT DND Optimistic] Event Dropped: ${event.id}, New Start: ${start}, New End: ${end}`);
+      // Log using the new terminology
+      console.log(`[CLIENT DND Optimistic] Event Dropped: ${event.id}, New Approval Date: ${start}, New Publishing Date: ${end}`);
 
-      // 1. Store the original state for potential rollback
-      const originalEvents = [...localEvents]; // Shallow copy is sufficient here
+      // 1. Store original state for rollback
+      const originalEvents = [...localEvents];
 
-      // 2. Create the updated event data for the optimistic UI update
-      const updatedOptimisticEvent = { ...event, start, end }; // Use new Date objects
+      // 2. Create updated event for optimistic UI (includes all existing fields)
+      const updatedOptimisticEvent: BigCalendarEvent = {
+        ...event,
+        start,    // Update internal 'start' (Approval Date)
+        end       // Update internal 'end' (Publishing Date)
+      };
 
-      // 3. Create the new state array with the updated event
+      // 3. Create new state array with updated event
       const optimisticEvents = originalEvents.map(ev =>
           ev.id === event.id ? updatedOptimisticEvent : ev
       );
 
-      // 4. Update the local state IMMEDIATELY for instant UI feedback
+      // 4. Update local state IMMEDIATELY
       setLocalEvents(optimisticEvents);
       console.log(`[CLIENT DND Optimistic] UI updated optimistically for ${event.id}`);
 
-      // 5. Prepare data for the server action (needs ISO strings)
+      // 5. Prepare data for server action (using ISO strings and internal 'start'/'end' keys)
       const dataForAction: CalendarEvent = {
         id: event.id,
         title: event.title,
         status: event.status,
         notes: event.notes,
-        start: start.toISOString(),
-        end: end.toISOString(),
+        attachment: event.attachment,
+        start: start.toISOString(), // NEW Approval Date
+        end: end.toISOString(),     // NEW Publishing Date
       };
 
-      // 6. Call the server action in the background
+      // 6. Call server action
       try {
         const result = await updateCalendarEventRefined(dataForAction);
 
-        // 7. Handle Server Action Result
+        // 7. Handle Server Result
         if (!result.success) {
-          // --- FAILURE: Revert UI and show error ---
           console.error("[CLIENT DND Optimistic] Failed server update action:", result.message);
           alert(`Error updating schedule: ${result.message}. Reverting change.`);
-          setLocalEvents(originalEvents); // Rollback local state
+          setLocalEvents(originalEvents); // Rollback
         } else {
-          // --- SUCCESS: Log confirmation ---
           console.log(`[CLIENT DND Optimistic] Server update successful for ${event.id}. Revalidation pending.`);
-          // UI is already updated. Server action's revalidatePath will eventually confirm this.
-          // No further local state change needed on success.
+          // Success: UI already updated.
         }
       } catch (error) {
-        // --- UNEXPECTED ERROR: Revert UI and show error ---
         console.error("[CLIENT DND Optimistic] Error calling update action after drop:", error);
         alert("An unexpected error occurred while saving the schedule change. Reverting change.");
         setLocalEvents(originalEvents); // Rollback on unexpected errors
       }
     },
-    [localEvents] // DEPENDENCY: Need current localEvents to map and revert
+    [localEvents] // Dependency
   );
 
   // --- Render Component ---
@@ -210,7 +202,6 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
       <header className="p-4 md:p-6 border-b dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex-shrink-0">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <h1 className="text-2xl sm:text-3xl font-bold text-primary dark:text-purple-400">ULE Homes Content Calendar</h1>
-            {/* Refined Add Event Button */}
             <button
                 onClick={handleOpenAddModal}
                 className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white rounded-lg font-semibold text-sm shadow-md hover:bg-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-600 dark:focus-visible:ring-offset-gray-800 active:scale-95 transition-all duration-150 ease-in-out"
@@ -232,7 +223,7 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
              </div>
              <div className="flex-grow">
                   <label htmlFor="searchTerm" className="sr-only">Search Events</label>
-                 <input type="search" id="searchTerm" placeholder="🔍 Search by title or notes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-primary focus:border-primary shadow-sm text-sm" />
+                 <input type="search" id="searchTerm" placeholder="🔍 Search title, notes, attachments..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-primary focus:border-primary shadow-sm text-sm" />
              </div>
          </div>
       </header>
@@ -250,23 +241,23 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
           )}
           {/* Inner scrollable container for calendar */}
           <div className="h-full overflow-y-auto">
-            {/* Use DnDCalendar and pass the filtered LOCAL state */}
             <DnDCalendar
                 localizer={localizer}
-                events={filteredEvents} // USE THE STATE-DRIVEN FILTERED LIST
-                startAccessor={(event: BigCalendarEvent) => event.start}
-                endAccessor={(event: BigCalendarEvent) => event.end}
+                events={filteredEvents}
+                // Crucial: Accessors MUST point to the 'start' and 'end' properties internally
+                startAccessor={(event: BigCalendarEvent) => event.start} // Represents Approval Date
+                endAccessor={(event: BigCalendarEvent) => event.end}     // Represents Publishing Date
                 style={{ minHeight: '600px' }}
                 views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
                 selectable
                 onSelectEvent={handleSelectEvent}
-                onSelectSlot={handleSelectSlot}
+                onSelectSlot={handleSelectSlot} // 'start'/'end' in slot info refer to slot timing
                 popup
                 components={{ event: CustomEvent }}
                 defaultDate={new Date()}
-                onEventDrop={handleEventDrop} // Use the optimistic handler
-                resizable // Keep resizing enabled if desired
-                // onEventResize={handleEventResize} // Implement if needed
+                onEventDrop={handleEventDrop} // 'start'/'end' in drop info refer to new drop timing
+                resizable
+                // onEventResize={handleEventResize} // Implement if needed, 'start'/'end' refer to resize timing
             />
           </div>
       </div>
@@ -274,12 +265,17 @@ export default function CalendarView({ initialEvents }: CalendarViewProps) {
       {/* Edit/Add Event Modal */}
       {isModalOpen && (
         <EditEventModal
-          event={selectedEvent ? { // If editing, create CalendarEvent structure for modal
-              ...selectedEvent,
-              // Assert as Date before calling toISOString
-              start: (selectedEvent.start instanceof Date ? selectedEvent.start : new Date(selectedEvent.start)).toISOString(),
-              end: (selectedEvent.end instanceof Date ? selectedEvent.end : new Date(selectedEvent.end)).toISOString(),
-          } : null} // Pass null if adding
+          // Pass data to modal using internal 'start'/'end' keys, converted to ISO strings
+          event={selectedEvent ? {
+              id: selectedEvent.id,
+              title: selectedEvent.title,
+              status: selectedEvent.status,
+              notes: selectedEvent.notes,
+              attachment: selectedEvent.attachment,
+              // Convert Date objects (Approval/Publishing) to ISO strings for the modal's input fields
+              start: (selectedEvent.start instanceof Date ? selectedEvent.start : new Date(selectedEvent.start)).toISOString(), // Approval Date
+              end: (selectedEvent.end instanceof Date ? selectedEvent.end : new Date(selectedEvent.end)).toISOString(),         // Publishing Date
+          } : null}
           onClose={handleCloseModal}
         />
       )}
