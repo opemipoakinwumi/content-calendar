@@ -38,7 +38,7 @@ const baseEventSchema = z.object({
 const dateRefinement = (data: { start: string, end: string }) => {
     try {
         return new Date(data.start) < new Date(data.end);
-    } catch (_e) {
+    } catch (_e) { // eslint-disable-line @typescript-eslint/no-unused-vars <-- ESLint Ignore Comment Added
         return false; // Invalid date strings would fail comparison
     }
 };
