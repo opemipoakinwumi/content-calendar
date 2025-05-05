@@ -1,3 +1,5 @@
+// --- START FILE: app/actions.ts ---
+
 'use server';
 
 import { Octokit } from '@octokit/rest';
@@ -23,36 +25,34 @@ export interface BigCalendarEvent extends Omit<CalendarEvent, 'start' | 'end'> {
 
 
 // --- Zod Schemas ---
-// REMOVED messages from baseEventSchema validators as a test
 const baseEventSchema = z.object({
   id: z.string().min(1),
-  title: z.string().min(1 /* 'Title is required' */), // Message removed
-  start: z.string().datetime(/*{ message: 'Invalid approval date/time format (e.g., YYYY-MM-DDTHH:mm)' }*/), // Message removed
-  end: z.string().datetime(/*{ message: 'Invalid publishing date/time format (e.g., YYYY-MM-DDTHH:mm)' }*/),   // Message removed
-  status: z.string().min(1 /* 'Status is required' */), // Message removed
+  title: z.string().min(1 /* 'Title is required' */),
+  start: z.string().datetime(/*{ message: 'Invalid approval date/time format (e.g., YYYY-MM-DDTHH:mm)' }*/),
+  end: z.string().datetime(/*{ message: 'Invalid publishing date/time format (e.g., YYYY-MM-DDTHH:mm)' }*/),
+  status: z.string().min(1 /* 'Status is required' */),
   notes: z.string().optional().nullable(),
   attachment: z.string().optional().nullable(),
 });
 
-// Refine logic checks if end date is after start date
 const dateRefinement = (data: { start: string, end: string }) => {
     try {
         return new Date(data.start) < new Date(data.end);
-    } catch {
-        return false; 
+    } catch (_e) { // eslint-disable-line @typescript-eslint/no-unused-vars
+        return false;
     }
 };
 
 const newEventSchema = baseEventSchema
     .omit({ id: true })
     .refine(dateRefinement, {
-        message: "Publishing date must be after approval date", // Keep refine message for now
+        message: "Publishing date must be after approval date",
         path: ["end"],
     });
 
-const eventSchema = baseEventSchema // Definition starts around line 80
+const eventSchema = baseEventSchema
     .refine(dateRefinement, {
-        message: "Publishing date must be after approval date", // Keep refine message for now
+        message: "Publishing date must be after approval date",
         path: ["end"],
     });
 
@@ -67,6 +67,7 @@ const REPO_OWNER = process.env.GITHUB_REPO_OWNER;
 const REPO_NAME = process.env.GITHUB_REPO_NAME;
 const FILE_PATH = process.env.GITHUB_FILE_PATH;
 
+// This check ensures the variables are defined if the code proceeds
 if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME || !FILE_PATH) {
     console.error("CRITICAL ERROR: Missing GitHub environment variables!");
     throw new Error('Missing GitHub environment variables. Check .env.local or deployment environment variables.');
@@ -79,8 +80,11 @@ async function getFileContent(): Promise<{ content: string; sha: string | null }
     const logPrefix = '[getFileContent]';
     try {
         console.log(`${logPrefix} Fetching file: ${REPO_OWNER}/${REPO_NAME}/${FILE_PATH}`);
+        // Use non-null assertion operator (!) because the check above guarantees they exist
         const response = await octokit.repos.getContent({
-            owner: REPO_OWNER, repo: REPO_NAME, path: FILE_PATH,
+            owner: REPO_OWNER!, // <-- ADDED !
+            repo: REPO_NAME!,  // <-- ADDED !
+            path: FILE_PATH!,  // <-- ADDED !
         });
         if (response.data && typeof response.data === 'object' && 'type' in response.data && response.data.type === 'file') {
             const fileData = response.data as { content?: string; sha: string };
@@ -119,8 +123,11 @@ async function updateFileContent(newContent: string, sha: string | null, commitM
     const logPrefix = '[updateFileContent]';
     try {
         console.log(`${logPrefix} Attempting to update file. SHA: ${sha ?? 'None (creating new)'}`);
+         // Use non-null assertion operator (!) because the check above guarantees they exist
         await octokit.repos.createOrUpdateFileContents({
-            owner: REPO_OWNER, repo: REPO_NAME, path: FILE_PATH,
+            owner: REPO_OWNER!, // <-- ADDED !
+            repo: REPO_NAME!,  // <-- ADDED !
+            path: FILE_PATH!,  // <-- ADDED !
             message: commitMessage,
             content: Buffer.from(newContent).toString('base64'),
             sha: sha ?? undefined,
