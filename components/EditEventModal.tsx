@@ -1,14 +1,14 @@
-// --- File: components/EditEventModal.tsx ---
-// components/EditEventModal.tsx
+// --- START FILE: components/EditEventModal.tsx ---
 'use client';
 
+// Ensure React is imported if needed, though often implicit in Next.js
 import React, { useState, useEffect, FormEvent } from 'react';
 import {
-    CalendarEvent, // IMPORTANT: Make sure this type includes 'attachment?: string | null;'
+    CalendarEvent,
     updateCalendarEventRefined,
     createCalendarEvent,
     deleteCalendarEvent
-} from '@/app/actions'; // IMPORTANT: Update these actions to handle the 'attachment' field
+} from '@/app/actions';
 import { ZodIssue } from 'zod';
 
 // Props Interface
@@ -17,34 +17,45 @@ interface EditEventModalProps {
   onClose: () => void;
 }
 
-// Date Formatting Helper
+// Date Formatting Helper for datetime-local input
 const formatDateForInput = (date: Date | string | undefined): string => {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '';
-  // Standard ISO format suitable for datetime-local
-  return d.toISOString().slice(0, 16);
+  // Format required by datetime-local: YYYY-MM-DDTHH:mm
+  const year = d.getFullYear();
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  const hours = d.getHours().toString().padStart(2, '0');
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-// Define the shape of the form data including the new attachment field
+// Define the shape of the form data
 interface EventFormData {
     title: string;
-    start: string; // Corresponds to Approval Date (internal name remains 'start')
-    end: string;   // Corresponds to Publishing Date (internal name remains 'end')
+    start: string; // Corresponds to Approval Date
+    end: string;   // Corresponds to Publishing Date
     status: string;
     notes: string;
-    attachment: string; // New field for attachment links
+    attachment: string; // Field for attachment links (newline separated)
 }
 
 // Default Form Data
 const defaultFormData: EventFormData = {
     title: '',
-    start: formatDateForInput(new Date()), // Default Approval Date
-    end: formatDateForInput(new Date(Date.now() + 60 * 60 * 1000)), // Default Publishing Date
+    start: formatDateForInput(new Date()),
+    end: formatDateForInput(new Date(Date.now() + 60 * 60 * 1000)),
     status: '',
     notes: '',
-    attachment: '', // Initialize attachment as empty
+    attachment: '',
 };
+
+// Helper to check if a string looks like a URL
+const isUrl = (text: string): boolean => {
+    const trimmed = text.trim();
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+}
 
 export default function EditEventModal({ event, onClose }: EditEventModalProps) {
   const isEditMode = !!event?.id;
@@ -59,8 +70,8 @@ export default function EditEventModal({ event, onClose }: EditEventModalProps) 
     if (isEditMode && event) {
       setFormData({
         title: event.title,
-        start: formatDateForInput(event.start), // Approval Date
-        end: formatDateForInput(event.end),     // Publishing Date
+        start: formatDateForInput(event.start),
+        end: formatDateForInput(event.end),
         status: event.status,
         notes: event.notes || '',
         attachment: event.attachment || '',
@@ -90,22 +101,15 @@ export default function EditEventModal({ event, onClose }: EditEventModalProps) 
   // Form Submit Handler (Create/Update)
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault(); setIsLoading(true); setErrorMessage(null); setFieldErrors(null);
-
-    // Prepare data, ensuring dates are ISO strings
     const dataToSend = {
         ...formData,
-        start: formData.start ? new Date(formData.start).toISOString() : '', // Approval Date
-        end: formData.end ? new Date(formData.end).toISOString() : '',       // Publishing Date
+        start: formData.start ? new Date(formData.start).toISOString() : '',
+        end: formData.end ? new Date(formData.end).toISOString() : '',
     };
-
     let result: { success: boolean; message: string; errors?: ZodIssue[] };
-
     try {
-        if (isEditMode && event?.id) {
-            result = await updateCalendarEventRefined({ ...dataToSend, id: event.id });
-        } else {
-            result = await createCalendarEvent(dataToSend);
-        }
+        if (isEditMode && event?.id) { result = await updateCalendarEventRefined({ ...dataToSend, id: event.id }); }
+        else { result = await createCalendarEvent(dataToSend); }
         setIsLoading(false);
         if (result.success) { onClose(); }
         else {
@@ -164,15 +168,12 @@ export default function EditEventModal({ event, onClose }: EditEventModalProps) 
           {/* Approval/Publishing Date Inputs */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              {/* Label Changed Here */}
               <label htmlFor="start" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Approval Date <span className="text-red-500">*</span></label>
-              {/* Input name/id remains 'start' */}
               <input type="datetime-local" id="start" name="start" value={formData.start} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60 appearance-none" disabled={isLoading || isDeleting}/>
                {fieldErrors?.start && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.start.join(', ')}</p>}
             </div>
             <div>
               <label htmlFor="end" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Publishing Date <span className="text-red-500">*</span></label>
-              {/* Input name/id remains 'end' */}
               <input type="datetime-local" id="end" name="end" value={formData.end} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60 appearance-none" disabled={isLoading || isDeleting}/>
               {fieldErrors?.end && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.end.join(', ')}</p>}
             </div>
@@ -192,14 +193,56 @@ export default function EditEventModal({ event, onClose }: EditEventModalProps) 
             <textarea id="notes" name="notes" rows={3} value={formData.notes} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60" disabled={isLoading || isDeleting} placeholder="Add any relevant details..."/>
               {fieldErrors?.notes && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.notes.join(', ')}</p>}
           </div>
-          {/* Attachment Textarea */}
-          <div className="mb-6">
+
+          {/* --- Attachment Section --- */}
+          <div className="mb-4"> {/* Use mb-4 like other fields */}
+            {/* Textarea for Editing */}
             <label htmlFor="attachment" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Attachment Links</label>
-            <textarea id="attachment" name="attachment" rows={2} value={formData.attachment} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60" disabled={isLoading || isDeleting} placeholder="Enter attachment URLs, one per line if multiple..."/>
-              {fieldErrors?.attachment && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.attachment.join(', ')}</p>}
+            <textarea
+                id="attachment"
+                name="attachment"
+                rows={3} // Keep rows reasonable for editing
+                value={formData.attachment}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-60"
+                disabled={isLoading || isDeleting}
+                placeholder="Enter attachment URLs, one per line..."
+            />
+             {fieldErrors?.attachment && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{fieldErrors.attachment.join(', ')}</p>}
+
+            {/* Clickable Links Preview Area - Added Below */}
+            {formData.attachment && formData.attachment.trim() !== '' && (
+                <div className="mt-3 p-3 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700/50">
+                    <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wider">Clickable Links:</h4>
+                    <div className="space-y-1">
+                        {formData.attachment
+                            .split('\n') // Split by newline
+                            .map(line => line.trim()) // Trim whitespace from each line
+                            .filter(line => isUrl(line)) // Filter for lines that look like URLs
+                            .map((url, index) => (
+                                <a
+                                    key={index} // Using index is okay here as the list order matters
+                                    href={url}
+                                    target="_blank" // Open in new tab
+                                    rel="noopener noreferrer" // Security measure
+                                    className="block text-sm text-blue-600 dark:text-blue-400 hover:underline break-all" // Style the link
+                                >
+                                    {url} {/* Display the URL as the link text */}
+                                </a>
+                         ))}
+                         {/* Optional: Message if no valid URLs found in the textarea */}
+                         {formData.attachment.split('\n').map(line => line.trim()).filter(line => isUrl(line)).length === 0 && (
+                            <p className='text-xs text-gray-500 dark:text-gray-400 italic'>No valid URLs found in the text above.</p>
+                         )}
+                    </div>
+                </div>
+            )}
+            {/* --- End Clickable Links Preview --- */}
           </div>
+          {/* --- End Attachment Section --- */}
+
           {/* Action Buttons Area */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700 mt-2">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700 mt-6"> {/* Increased top margin */}
               {/* Delete Button */}
               <div className="flex-shrink-0 w-full sm:w-auto">
                  {isEditMode ? (
