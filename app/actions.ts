@@ -1,5 +1,3 @@
-// --- START FILE: app/actions.ts ---
-
 'use server';
 
 import { Octokit } from '@octokit/rest';
