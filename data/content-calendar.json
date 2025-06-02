@@ -222,5 +222,14 @@
     "status": "Approved",
     "notes": "Create a carousel slide containing images of different locations in Lagos with their names as headers.\n\nCaption: Fun, relatable and a conversation starter. ",
     "attachment": null
+  },
+  {
+    "title": "LOAN BROKE ME",
+    "start": "2025-06-04T08:34:00.000Z",
+    "end": "2025-06-04T09:34:00.000Z",
+    "status": "Draft",
+    "notes": "Create Caption, use statistics of loan sharks in Nigeria that has harassed victims and how ULE Homes is different from loan sharks.",
+    "attachment": null,
+    "id": "1f9afa7f-3464-442d-9de4-4daafd57ad8e"
   }
 ]
