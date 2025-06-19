@@ -312,5 +312,14 @@
     "status": "Draft",
     "notes": "CREATE CAPTION EXPLAINING WE ARE ACCESSIBLE TO BUSINESS OWNERS.",
     "attachment": null
+  },
+  {
+    "title": "TruQ Collaboration",
+    "start": "2025-06-19T21:19:00.000Z",
+    "end": "2025-06-19T22:19:00.000Z",
+    "status": "Approved",
+    "notes": "Create a caption emphasizing the benefit of this collaboration to our audience.\n\nNot wordy, nor repetitive sentences ",
+    "attachment": null,
+    "id": "759956e6-f63c-4352-a1df-64260bea84d2"
   }
 ]
