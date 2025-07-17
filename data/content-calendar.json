@@ -502,5 +502,14 @@
     "status": "In Progress",
     "notes": "",
     "attachment": null
+  },
+  {
+    "title": "DSCR Video",
+    "start": "2025-08-07T15:40:00.000Z",
+    "end": "2025-08-07T16:40:00.000Z",
+    "status": "Draft",
+    "notes": "",
+    "attachment": null,
+    "id": "907a0da9-75b8-48a8-b8dd-dcd234c4be1a"
   }
 ]
