@@ -484,5 +484,14 @@
     "status": "Approved",
     "notes": "CREATE CAPTION",
     "attachment": null
+  },
+  {
+    "title": "REPAYMENT PLAN VIDEO",
+    "start": "2025-07-31T15:40:00.000Z",
+    "end": "2025-07-31T16:40:00.000Z",
+    "status": "Draft",
+    "notes": "",
+    "attachment": null,
+    "id": "39cd75ba-4129-4946-aa20-035bc7b1bb66"
   }
 ]
