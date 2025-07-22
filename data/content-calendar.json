@@ -529,5 +529,14 @@
     "status": "Approved",
     "notes": "Create caption for CREDIT SCORE VIDEO\n\nTIKTOK/LI/IG",
     "attachment": null
+  },
+  {
+    "title": "ADS VIDEO",
+    "start": "2025-07-25T13:00:00.000Z",
+    "end": "2025-07-25T13:05:00.000Z",
+    "status": "Approved",
+    "notes": "",
+    "attachment": null,
+    "id": "d6db191c-c474-4675-9fbb-92f4c9593df3"
   }
 ]
