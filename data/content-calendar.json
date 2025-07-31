@@ -380,9 +380,9 @@
   {
     "id": "b42b2b2f-9231-43a2-8b4b-47295c1977b9",
     "title": " CREDIT SCORE FLYER",
-    "start": "2025-07-28T09:00:00.000Z",
-    "end": "2025-07-28T09:05:00.000Z",
-    "status": "Approved",
+    "start": "2025-07-28T08:00:00.000Z",
+    "end": "2025-07-28T08:05:00.000Z",
+    "status": "Published",
     "notes": "CAPTION AS AUDIENCE REMINDER",
     "attachment": null
   },
